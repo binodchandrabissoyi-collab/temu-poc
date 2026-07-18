@@ -53,6 +53,7 @@
 <script>
   // ========================================================
   // 1. DETECT TOKENS LEAKED VIA URL / REFERER (Auto-run)
+  //    🔥 Shows ALERT BOX if tokens are found!
   // ========================================================
   function detectLeakedTokens() {
     const fullUrl = window.location.href;
@@ -83,23 +84,33 @@
       });
     }
 
-    // Display results
+    // ========================================================
+    // 🔥 SHOW ALERT BOX IF TOKENS ARE LEAKED
+    // ========================================================
     const alertBox = document.getElementById('tokenAlert');
     const details = document.getElementById('tokenDetails');
 
     if (leaked.length > 0) {
-      alertBox.classList.add('show');
-      let html = '';
+      // Build alert message
+      let alertMsg = '🔥 TOKEN LEAK DETECTED!\n\n';
+      let htmlMsg = '';
       leaked.forEach(item => {
-        html += `🔸 <strong>${item.param}</strong> = <span style="color: #d9534f;">${item.value}</span> (found in <strong>${item.source}</strong>)<br>`;
+        alertMsg += `🔸 ${item.param} = ${item.value}\n   (found in ${item.source})\n\n`;
+        htmlMsg += `🔸 <strong>${item.param}</strong> = <span style="color: #d9534f;">${item.value}</span> (found in <strong>${item.source}</strong>)<br>`;
       });
-      details.innerHTML = html;
 
-      // Also log to console for your screenshots
+      // Show ALERT BOX (pop-up)
+      alert(alertMsg);
+
+      // Show on page (red box)
+      alertBox.classList.add('show');
+      details.innerHTML = htmlMsg;
+
+      // Log to console for screenshots
       console.log('🔥 LEAKED TOKENS DETECTED:');
       console.table(leaked);
     } else {
-      console.log('✅ No tokens leaked in URL or Referer (PoC page loaded directly).');
+      console.log('✅ No tokens leaked in URL or Referer.');
     }
   }
 
